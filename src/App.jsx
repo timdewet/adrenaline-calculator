@@ -226,6 +226,7 @@ function App() {
 
       <footer>
         <p>Always verify calculations independently before clinical administration.</p>
+        <p className="footer-credit">Built by Timothy de Wet with the help of Claude</p>
       </footer>
     </div>
   )
