@@ -202,6 +202,39 @@ input[type='number']:focus {
   grid-column: span 2;
 }
 
+/* ── Warning ───────────────────────────────── */
+.warning {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+  background: #fffbeb;
+  border: 1.5px solid #f59e0b;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+
+.warning-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.warning strong {
+  display: block;
+  font-size: 0.875rem;
+  color: #92400e;
+  margin-bottom: 0.2rem;
+}
+
+.warning p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #92400e;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 /* ── Footer ────────────────────────────────── */
 footer {
   margin-top: auto;

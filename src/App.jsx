@@ -24,6 +24,8 @@ function App() {
   const reverseFilled = sharedFilled && !isNaN(rateNum) && rateNum > 0
   const allFilled = mode === 'forward' ? forwardFilled : reverseFilled
 
+  const HIGH_DOSE_THRESHOLD = 0.2 // mcg/kg/min
+
   // Shared: concentration always derives from amps + volume
   const totalMcg = ampsNum * 1000
   const concentration = sharedFilled ? totalMcg / volumeNum : null
@@ -40,6 +42,8 @@ function App() {
     infusionRate = rateNum
     duration = volumeNum / rateNum
   }
+
+  const highDose = allFilled && doseRate > HIGH_DOSE_THRESHOLD
 
   const durationDisplay = () => {
     if (!allFilled) return null
@@ -220,6 +224,16 @@ function App() {
                 </div>
               )}
             </div>
+
+            {highDose && (
+              <div className="warning">
+                <span className="warning-icon">⚠️</span>
+                <div>
+                  <strong>High dose — central access recommended</strong>
+                  <p>Doses &gt; 0.2 mcg/kg/min should be administered via a central venous catheter rather than a peripheral line.</p>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </main>
