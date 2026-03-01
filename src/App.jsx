@@ -1,91 +1,142 @@
 import { useState } from 'react'
+import { DRUGS } from './drugConfigs.js'
 import './App.css'
 
 function App() {
+  const [drugId, setDrugId] = useState('adrenaline')
   const [mode, setMode] = useState('forward') // 'forward' | 'reverse'
   const [amps, setAmps] = useState('')
+  const [volume, setVolume] = useState('')
   const [weight, setWeight] = useState('')
   const [dose, setDose] = useState('')
-  const [volume, setVolume] = useState('')
   const [rate, setRate] = useState('')
 
-  const ampsNum = parseFloat(amps)
-  const weightNum = parseFloat(weight)
-  const doseNum = parseFloat(dose)
-  const volumeNum = parseFloat(volume)
-  const rateNum = parseFloat(rate)
+  const config = DRUGS.find(d => d.id === drugId)
 
+  const handleDrugChange = (id) => {
+    setDrugId(id)
+    setAmps('')
+    setVolume('')
+    setDose('')
+    setRate('')
+    // weight intentionally preserved — it's the patient, not the drug
+  }
+
+  // ── Parsed numbers ────────────────────────────────────────────────────────
+  const ampsNum   = parseFloat(amps)
+  const volumeNum = parseFloat(volume)
+  const weightNum = parseFloat(weight)
+  const doseNum   = parseFloat(dose)
+  const rateNum   = parseFloat(rate)
+
+  // ── Completeness checks ───────────────────────────────────────────────────
   const sharedFilled =
-    !isNaN(ampsNum) && ampsNum > 0 &&
-    !isNaN(weightNum) && weightNum > 0 &&
-    !isNaN(volumeNum) && volumeNum > 0
+    !isNaN(ampsNum)   && ampsNum   > 0 &&
+    !isNaN(volumeNum) && volumeNum > 0 &&
+    !isNaN(weightNum) && weightNum > 0
 
   const forwardFilled = sharedFilled && !isNaN(doseNum) && doseNum > 0
   const reverseFilled = sharedFilled && !isNaN(rateNum) && rateNum > 0
   const allFilled = mode === 'forward' ? forwardFilled : reverseFilled
 
-  const HIGH_DOSE_THRESHOLD = 0.2 // mcg/kg/min
-
-  // Shared: concentration always derives from amps + volume
-  const totalMcg = ampsNum * 1000
-  const concentration = sharedFilled ? totalMcg / volumeNum : null
+  // ── Core calculations ─────────────────────────────────────────────────────
+  const concentration = sharedFilled
+    ? (ampsNum * config.mcgPerAmp) / volumeNum   // mcg/mL
+    : null
 
   let absoluteDose, infusionRate, doseRate, duration
+
   if (mode === 'forward' && forwardFilled) {
-    absoluteDose = doseNum * weightNum
-    infusionRate = (doseNum * weightNum * 60) / concentration
-    doseRate = doseNum
-    duration = volumeNum / infusionRate
+    absoluteDose = doseNum * weightNum                          // mcg/min
+    infusionRate = (doseNum * weightNum * 60) / concentration  // mL/hr
+    doseRate     = doseNum
+    duration     = volumeNum / infusionRate                    // hr
   } else if (mode === 'reverse' && reverseFilled) {
-    absoluteDose = (rateNum * concentration) / 60
-    doseRate = absoluteDose / weightNum
+    absoluteDose = (rateNum * concentration) / 60              // mcg/min
+    doseRate     = absoluteDose / weightNum                    // mcg/kg/min
     infusionRate = rateNum
-    duration = volumeNum / rateNum
+    duration     = volumeNum / rateNum                         // hr
   }
 
-  const highDose = allFilled && doseRate > HIGH_DOSE_THRESHOLD
+  // ── Warning logic ─────────────────────────────────────────────────────────
+  const ca = config.centralAccess
+  const showWarning = allFilled && (
+    ca.type === 'always' ||
+    (ca.type === 'threshold' && doseRate > ca.thresholdDose)
+  )
+  const warningLevel = ca.type === 'always' ? 'danger' : 'amber'
 
+  // ── Titration table ───────────────────────────────────────────────────────
+  const titrationRows = sharedFilled
+    ? config.titrationSteps.map(step => ({
+        dose: step,
+        rate: (step * weightNum * 60) / concentration,
+        aboveThreshold:
+          ca.type === 'threshold' && step > ca.thresholdDose,
+      }))
+    : []
+
+  const activeStep = allFilled && titrationRows.length
+    ? titrationRows.reduce((prev, curr) =>
+        Math.abs(curr.dose - doseRate) < Math.abs(prev.dose - doseRate) ? curr : prev
+      ).dose
+    : null
+
+  // ── Duration formatting ───────────────────────────────────────────────────
   const durationDisplay = () => {
     if (!allFilled) return null
-    const hrs = Math.floor(duration)
+    const hrs  = Math.floor(duration)
     const mins = Math.round((duration - hrs) * 60)
     if (hrs === 0) return `${mins} min`
     if (mins === 0) return `${hrs} hr`
     return `${hrs} hr ${mins} min`
   }
 
-  const handleModeChange = (newMode) => {
-    setMode(newMode)
-  }
+  const ampPlural = ampsNum === 1 ? config.ampUnitLabel : `${config.ampUnitLabel}s`
 
   return (
     <div className="app">
       <header>
-        <h1>Adrenaline Infusion Calculator</h1>
-        <p className="subtitle">Ampoule concentration: 1 mg / 1 mL (1:1000)</p>
+        <h1>Vasopressor Calculator</h1>
       </header>
+
+      {/* ── Drug selector ─────────────────────────────────────────────── */}
+      <div className="drug-tabs">
+        {DRUGS.map(d => (
+          <button
+            key={d.id}
+            className={`drug-tab${drugId === d.id ? ' drug-tab--active' : ''}`}
+            onClick={() => handleDrugChange(d.id)}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
 
       <main>
         <section className="card">
           <div className="mode-toggle">
             <button
               className={`mode-btn${mode === 'forward' ? ' mode-btn--active' : ''}`}
-              onClick={() => handleModeChange('forward')}
+              onClick={() => setMode('forward')}
             >
               Dose &rarr; Rate
             </button>
             <button
               className={`mode-btn${mode === 'reverse' ? ' mode-btn--active' : ''}`}
-              onClick={() => handleModeChange('reverse')}
+              onClick={() => setMode('reverse')}
             >
               Rate &rarr; Dose
             </button>
           </div>
 
           <h2>Infusion Setup</h2>
+          <p className="drug-note">{config.ampLabel}</p>
 
           <div className="field">
-            <label htmlFor="amps">Ampoules used</label>
+            <label htmlFor="amps">
+              {config.ampUnitLabel.charAt(0).toUpperCase() + config.ampUnitLabel.slice(1)}s used
+            </label>
             <div className="input-wrap">
               <input
                 id="amps"
@@ -96,7 +147,9 @@ function App() {
                 onChange={e => setAmps(e.target.value)}
                 placeholder="e.g. 5"
               />
-              <span className="unit">amp{ampsNum !== 1 ? 's' : ''} &times; 1 mg each</span>
+              <span className="unit">
+                {ampPlural} &times; {config.mgPerAmp} mg each
+              </span>
             </div>
           </div>
 
@@ -140,12 +193,12 @@ function App() {
                   id="dose"
                   type="number"
                   min="0"
-                  step="0.01"
+                  step={config.doseStep}
                   value={dose}
                   onChange={e => setDose(e.target.value)}
-                  placeholder="e.g. 0.1"
+                  placeholder={`e.g. ${config.dosePlaceholder}`}
                 />
-                <span className="unit">mcg / kg / min</span>
+                <span className="unit">{config.doseUnit}</span>
               </div>
             </div>
           ) : (
@@ -159,7 +212,7 @@ function App() {
                   step="0.1"
                   value={rate}
                   onChange={e => setRate(e.target.value)}
-                  placeholder="e.g. 21.0"
+                  placeholder="e.g. 5.0"
                 />
                 <span className="unit">mL / hr</span>
               </div>
@@ -167,6 +220,7 @@ function App() {
           )}
         </section>
 
+        {/* ── Results ───────────────────────────────────────────────────── */}
         {allFilled && (
           <section className="card results">
             <h2>Results</h2>
@@ -181,7 +235,7 @@ function App() {
               <div className="result-primary">
                 <span className="result-label">Dose rate</span>
                 <span className="result-value">{doseRate.toFixed(3)}</span>
-                <span className="result-unit">mcg / kg / min</span>
+                <span className="result-unit">{config.doseUnit}</span>
               </div>
             )}
 
@@ -205,16 +259,16 @@ function App() {
               </div>
 
               <div className="result-item">
-                <span className="result-label">Total adrenaline</span>
-                <span className="result-value">{ampsNum}</span>
-                <span className="result-unit">mg ({ampsNum * 1000} mcg)</span>
+                <span className="result-label">Total drug</span>
+                <span className="result-value">{(ampsNum * config.mgPerAmp).toFixed(0)}</span>
+                <span className="result-unit">mg ({(ampsNum * config.mcgPerAmp).toLocaleString()} mcg)</span>
               </div>
 
               {mode === 'forward' ? (
                 <div className="result-item result-item--wide">
                   <span className="result-label">Dose rate</span>
                   <span className="result-value">{doseRate}</span>
-                  <span className="result-unit">mcg / kg / min</span>
+                  <span className="result-unit">{config.doseUnit}</span>
                 </div>
               ) : (
                 <div className="result-item result-item--wide">
@@ -225,15 +279,61 @@ function App() {
               )}
             </div>
 
-            {highDose && (
-              <div className="warning">
-                <span className="warning-icon">⚠️</span>
+            {showWarning && (
+              <div className={`warning warning--${warningLevel}`}>
+                <span className="warning-icon">{warningLevel === 'danger' ? '🚨' : '⚠️'}</span>
                 <div>
-                  <strong>High dose — central access recommended</strong>
-                  <p>Doses &gt; 0.2 mcg/kg/min should be administered via a central venous catheter rather than a peripheral line.</p>
+                  <strong>
+                    {ca.type === 'always'
+                      ? 'Central access required'
+                      : 'High dose — central access recommended'}
+                  </strong>
+                  <p>{ca.warningText}</p>
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {/* ── Titration table ───────────────────────────────────────────── */}
+        {sharedFilled && (
+          <section className="card card--titration">
+            <h2>Titration Table</h2>
+            {ca.type === 'always' && (
+              <div className="warning warning--danger warning--compact">
+                <span className="warning-icon">🚨</span>
+                <strong>Central access required for all doses</strong>
+              </div>
+            )}
+            <div className="titration-table-wrap">
+              <table className="titration-table">
+                <thead>
+                  <tr>
+                    <th className="col-left">Dose ({config.doseUnit})</th>
+                    <th>Rate (mL / hr)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {titrationRows.map(row => (
+                    <tr
+                      key={row.dose}
+                      className={[
+                        row.dose === activeStep  ? 'row--current'         : '',
+                        row.aboveThreshold       ? 'row--above-threshold' : '',
+                      ].join(' ').trim()}
+                    >
+                      <td className="col-left">
+                        {row.aboveThreshold && (
+                          <span className="row-warn-icon">⚠</span>
+                        )}
+                        {row.dose}
+                      </td>
+                      <td>{row.rate.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
       </main>

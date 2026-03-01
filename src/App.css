@@ -10,20 +10,44 @@
 /* ── Header ────────────────────────────────── */
 header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
 }
 
 header h1 {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1a1a2e;
-  margin: 0 0 0.25rem;
+  margin: 0;
 }
 
-.subtitle {
-  margin: 0;
-  font-size: 0.85rem;
+/* ── Drug tabs ─────────────────────────────── */
+.drug-tabs {
+  display: flex;
+  background: #e8eaed;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 1rem;
+}
+
+.drug-tab {
+  flex: 1;
+  padding: 0.5rem 0.2rem;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
   color: #888;
+  transition: background 0.18s, color 0.18s;
+  white-space: nowrap;
+}
+
+.drug-tab--active {
+  background: #fff;
+  color: #c0392b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* ── Mode toggle ───────────────────────────── */
@@ -65,7 +89,7 @@ header h1 {
 }
 
 .card h2 {
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.5rem;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -73,6 +97,12 @@ header h1 {
   color: #c0392b;
   border-bottom: 2px solid #e8eaed;
   padding-bottom: 0.6rem;
+}
+
+.drug-note {
+  margin: 0 0 1.1rem;
+  font-size: 0.8rem;
+  color: #999;
 }
 
 /* ── Input fields ──────────────────────────── */
@@ -156,6 +186,7 @@ input[type='number']:focus {
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .result-primary .result-unit {
@@ -191,6 +222,7 @@ input[type='number']:focus {
   font-weight: 700;
   color: #1a1a2e;
   line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .result-item .result-unit {
@@ -214,8 +246,24 @@ input[type='number']:focus {
   padding: 0.9rem 1rem;
 }
 
+.warning--danger {
+  background: #fff1f0;
+  border-color: #c0392b;
+}
+
+.warning--compact {
+  margin-top: 0;
+  margin-bottom: 0.9rem;
+  padding: 0.6rem 0.85rem;
+  align-items: center;
+}
+
+.warning--compact strong {
+  margin-bottom: 0;
+}
+
 .warning-icon {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -227,12 +275,84 @@ input[type='number']:focus {
   margin-bottom: 0.2rem;
 }
 
+.warning--danger strong {
+  color: #7f1d1d;
+}
+
 .warning p {
   margin: 0;
   font-size: 0.8rem;
   color: #92400e;
   font-weight: 400;
   line-height: 1.4;
+}
+
+.warning--danger p {
+  color: #7f1d1d;
+}
+
+/* ── Titration table ───────────────────────── */
+.card--titration h2 {
+  color: #666;
+}
+
+.titration-table-wrap {
+  overflow-x: auto;
+}
+
+.titration-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.titration-table th {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #999;
+  padding: 0.35rem 0.75rem;
+  text-align: right;
+  border-bottom: 2px solid #e8eaed;
+}
+
+.titration-table th.col-left,
+.titration-table td.col-left {
+  text-align: left;
+}
+
+.titration-table td {
+  padding: 0.55rem 0.75rem;
+  text-align: right;
+  border-bottom: 1px solid #f0f2f5;
+  color: #333;
+}
+
+.titration-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.titration-table tr.row--current td {
+  background: rgba(192, 57, 43, 0.08);
+  font-weight: 700;
+  color: #c0392b;
+}
+
+.titration-table tr.row--above-threshold td {
+  color: #92400e;
+}
+
+.titration-table tr.row--current.row--above-threshold td {
+  background: rgba(245, 158, 11, 0.12);
+  color: #92400e;
+}
+
+.row-warn-icon {
+  font-size: 0.8rem;
+  margin-right: 0.3rem;
+  color: #f59e0b;
 }
 
 /* ── Footer ────────────────────────────────── */
@@ -259,5 +379,9 @@ footer p {
 @media (max-width: 400px) {
   .result-grid {
     grid-template-columns: 1fr;
+  }
+  .drug-tab {
+    font-size: 0.68rem;
+    padding: 0.45rem 0.1rem;
   }
 }
