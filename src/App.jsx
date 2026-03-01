@@ -1,8 +1,47 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DRUGS } from './drugConfigs.js'
 import './App.css'
 
 function App() {
+  // ── Install prompt ────────────────────────────────────────────────────────
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [showInstallBanner, setShowInstallBanner] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
+
+  useEffect(() => {
+    // Don't show if already installed as a standalone app
+    const alreadyInstalled =
+      window.navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches
+    if (alreadyInstalled) return
+
+    // iOS: no beforeinstallprompt — show manual instructions
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    if (ios) {
+      setIsIOS(true)
+      setShowInstallBanner(true)
+      return
+    }
+
+    // Android / Chrome: capture the deferred prompt
+    const handler = e => {
+      e.preventDefault()
+      setInstallPrompt(e)
+      setShowInstallBanner(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') setShowInstallBanner(false)
+    setInstallPrompt(null)
+  }
+
+  // ── Calculator state ──────────────────────────────────────────────────────
   const [drugId, setDrugId] = useState('adrenaline')
   const [mode, setMode] = useState('forward') // 'forward' | 'reverse'
   const [amps, setAmps] = useState('')
@@ -337,6 +376,24 @@ function App() {
           </section>
         )}
       </main>
+
+      {/* ── Install banner ────────────────────────────────────────────── */}
+      {showInstallBanner && (
+        <div className="install-banner">
+          <img src="/icon.svg" className="install-icon" alt="" />
+          <div className="install-text">
+            <strong>Install VasoCalc</strong>
+            {isIOS
+              ? <span>Tap <strong>Share</strong> then <strong>Add to Home Screen</strong></span>
+              : <span>Add to your home screen for offline use</span>
+            }
+          </div>
+          {!isIOS && (
+            <button className="install-btn" onClick={handleInstall}>Install</button>
+          )}
+          <button className="install-dismiss" onClick={() => setShowInstallBanner(false)} aria-label="Dismiss">✕</button>
+        </div>
+      )}
 
       <footer>
         <p>Always verify calculations independently before clinical administration.</p>
